@@ -68,6 +68,33 @@ def generate_page(from_path, template_path, dest_path):
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(final_html)
 
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
+    """
+    Recursively traverse the content directory, generate HTML pages for
+    all markdown files, and write them to the corresponding location in dest_dir_path.
+    """
+    for entry in os.listdir(dir_path_content):
+        source_path = os.path.join(dir_path_content, entry)
+        relative_path = os.path.relpath(source_path, dir_path_content)
+
+        if os.path.isdir(source_path):
+            # Recursively process subdirectories
+            generate_pages_recursive(
+                source_path,
+                template_path,
+                os.path.join(dest_dir_path, entry)
+            )
+        elif os.path.isfile(source_path) and entry.endswith(".md"):
+            # Determine destination HTML path
+            html_filename = entry.rsplit(".", 1)[0] + ".html"
+            dest_path = os.path.join(dest_dir_path, html_filename)
+
+            # Ensure the destination directory exists
+            os.makedirs(os.path.dirname(dest_path), exist_ok=True)
+
+            # Generate the page
+            generate_page(source_path, template_path, dest_path)
+
 def main():
     current_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.abspath(os.path.join(current_dir, ".."))  # /static
@@ -85,7 +112,7 @@ def main():
     copy_static(static_dir, public_dir)
 
     # Generate main page
-    generate_page(index_md_path, template_path, index_html_path)
+    generate_pages_recursive(content_dir, template_path, public_dir)
 
 
 main()
