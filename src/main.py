@@ -2,6 +2,7 @@ import os
 import shutil
 from markdown_to_html import markdown_to_html_node
 from textnode import TextNode, TextType
+import sys
 
 def copy_static(source_dir, dest_dir):
     # If destination exists, delete it completely
@@ -42,16 +43,14 @@ def extract_title(markdown):
             return line[2:].strip()
     raise ValueError("No H1 header found in markdown.")
 
-def generate_page(from_path, template_path, dest_path):
+def generate_page(from_path, template_path, dest_path, basepath="/"):
     print(f"Generating page from {from_path} to {dest_path} using {template_path}")
 
-    # Ensure the destination directory exists
     os.makedirs(os.path.dirname(dest_path), exist_ok=True)
 
-    # Read markdown and template
+    # Read files
     with open(from_path, "r", encoding="utf-8") as f:
         markdown = f.read()
-
     with open(template_path, "r", encoding="utf-8") as f:
         template = f.read()
 
@@ -64,55 +63,50 @@ def generate_page(from_path, template_path, dest_path):
     # Replace placeholders
     final_html = template.replace("{{ Title }}", title).replace("{{ Content }}", html_content)
 
-    # Write final HTML to destination
+    # Adjust href and src for basepath
+    final_html = final_html.replace('href="/', f'href="{basepath}')
+    final_html = final_html.replace('src="/', f'src="{basepath}')
+
+    # Write final HTML
     with open(dest_path, "w", encoding="utf-8") as f:
         f.write(final_html)
 
-def generate_pages_recursive(dir_path_content, template_path, dest_dir_path):
-    """
-    Recursively traverse the content directory, generate HTML pages for
-    all markdown files, and write them to the corresponding location in dest_dir_path.
-    """
+def generate_pages_recursive(dir_path_content, template_path, dest_dir_path, basepath="/"):
     for entry in os.listdir(dir_path_content):
         source_path = os.path.join(dir_path_content, entry)
-        relative_path = os.path.relpath(source_path, dir_path_content)
 
         if os.path.isdir(source_path):
-            # Recursively process subdirectories
             generate_pages_recursive(
                 source_path,
                 template_path,
-                os.path.join(dest_dir_path, entry)
+                os.path.join(dest_dir_path, entry),
+                basepath
             )
         elif os.path.isfile(source_path) and entry.endswith(".md"):
-            # Determine destination HTML path
             html_filename = entry.rsplit(".", 1)[0] + ".html"
             dest_path = os.path.join(dest_dir_path, html_filename)
-
-            # Ensure the destination directory exists
             os.makedirs(os.path.dirname(dest_path), exist_ok=True)
-
-            # Generate the page
-            generate_page(source_path, template_path, dest_path)
+            generate_page(source_path, template_path, dest_path, basepath)
 
 def main():
+    # Get basepath from CLI argument, default to "/"
+    basepath = sys.argv[1] if len(sys.argv) > 1 else "/"
+
     current_dir = os.path.dirname(os.path.abspath(__file__))
     static_dir = os.path.abspath(os.path.join(current_dir, ".."))  # /static
     content_dir = os.path.join(static_dir, "content")
-    public_dir = os.path.join(static_dir, "public")
+    docs_dir = os.path.join(static_dir, "docs")  # GitHub Pages uses /docs
     template_path = os.path.join(static_dir, "template.html")
-    index_md_path = os.path.join(content_dir, "index.md")
-    index_html_path = os.path.join(public_dir, "index.html")
 
-    # Clean public directory
-    if os.path.exists(public_dir):
-        shutil.rmtree(public_dir)
+    # Clean docs directory
+    if os.path.exists(docs_dir):
+        shutil.rmtree(docs_dir)
 
     # Copy static files
-    copy_static(static_dir, public_dir)
+    copy_static(static_dir, docs_dir)
 
-    # Generate main page
-    generate_pages_recursive(content_dir, template_path, public_dir)
+    # Generate pages recursively with basepath
+    generate_pages_recursive(content_dir, template_path, docs_dir, basepath)
 
 
 main()
