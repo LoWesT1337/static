@@ -52,4 +52,57 @@ This is the same paragraph on a new line
             "This is a paragraph.",
         ]
 
+    def test_heading_block(self):
+        assert block_to_block_type("# Heading") == BlockType.HEADING
+        assert block_to_block_type("###### Heading") == BlockType.HEADING
 
+    def test_not_heading_no_space(self):
+        assert block_to_block_type("##Heading") == BlockType.PARAGRAPH
+
+    def test_code_block(self):
+        block = "```\ncode here\n```"
+        assert block_to_block_type(block) == BlockType.CODE
+
+    def test_not_code_block(self):
+        block = "```\ncode here"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_quote_block(self):
+        block = "> Quote line one\n> Quote line two"
+        assert block_to_block_type(block) == BlockType.QUOTE
+
+    def test_mixed_quote_not_quote(self):
+        block = "> Quote line\nNormal line"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_unordered_list(self):
+        block = "- item one\n- item two\n- item three"
+        assert block_to_block_type(block) == BlockType.UNORDERED_LIST
+
+    def test_unordered_list_missing_space(self):
+        block = "-item one\n- item two"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_ordered_list(self):
+        block = "1. first\n2. second\n3. third"
+        assert block_to_block_type(block) == BlockType.ORDERED_LIST
+
+    def test_ordered_list_wrong_order(self):
+        block = "1. first\n3. second"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_ordered_list_not_starting_at_one(self):
+        block = "2. first\n3. second"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_ordered_list_not_starting_at_one(self):
+        block = "2. first\n3. second"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_paragraph(self):
+        block = "This is just a normal paragraph of text."
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
+
+    def test_multiline_paragraph(self):
+        block = "Line one\nLine two"
+        assert block_to_block_type(block) == BlockType.PARAGRAPH
